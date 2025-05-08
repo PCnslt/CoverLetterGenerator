@@ -10,9 +10,9 @@ import time
 class PaymentProcessor:
     """Handles payment processing with Stripe integration and Supabase logging"""
     
-    def __init__(self, stripe_secret_key: str, supabase_url: str, supabase_key: str, stripe_success_url: str = "http://localhost:8501", stripe_webhook_secret: str = None):
+    def __init__(self, stripe_secret_key: str, supabase_url: str, supabase_key: str, stripe_success_url: str, stripe_webhook_secret: str = None):
         # Validate secrets first
-        if not all([supabase_url, supabase_key, stripe_secret_key]):
+        if not all([str(supabase_url), str(supabase_key), str(stripe_secret_key), str(stripe_success_url)]):
             raise ValueError("Missing required configuration")
             
         if not supabase_url.startswith("https://"):
@@ -23,7 +23,6 @@ class PaymentProcessor:
 
         stripe.api_key = stripe_secret_key
         self.supabase = create_client(supabase_url, supabase_key)
-        self.stripe_price_id = stripe_price_id
         self.stripe_success_url = stripe_success_url
         self.stripe_webhook_secret = stripe_webhook_secret
         

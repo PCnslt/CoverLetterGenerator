@@ -27,8 +27,7 @@ required_secrets = [
     "SUPABASE_URL", 
     "SUPABASE_KEY",
     "STRIPE_SECRET_KEY",
-    "STRIPE_SUCCESS_URL",
-    "STRIPE_WEBHOOK_SECRET"
+    "STRIPE_SUCCESS_URL"
 ]
 
 secrets = load_secrets()
@@ -39,7 +38,7 @@ try:
         stripe_secret_key=secrets["STRIPE_SECRET_KEY"],
         supabase_url=secrets["SUPABASE_URL"],
         supabase_key=secrets["SUPABASE_KEY"],
-        stripe_success_url=secrets.get("STRIPE_SUCCESS_URL", "http://localhost:8501"),
+        stripe_success_url=secrets["STRIPE_SUCCESS_URL"],
         stripe_webhook_secret=secrets.get("STRIPE_WEBHOOK_SECRET")
     )
     openai_client = OpenAI(api_key=secrets["OPENAI_API_KEY"])
