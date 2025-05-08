@@ -8,7 +8,20 @@ from typing import Optional, Iterator
 import os
 from openai import OpenAI, APIError, AuthenticationError, RateLimitError
 
-# Handle secrets for both local and cloud environments
+
+def load_secrets():
+    import os
+    try:
+        # Primary load from st.secrets (Cloud)
+        secrets = {key: st.secrets[key] for key in required_secrets}
+        if all(secrets.values()):
+            return secrets
+        # Secondary load from os.environ (Local)
+        return {key: os.environ[key] for key in required_secrets}
+    except KeyError as e:
+        st.error(f"Missing secret: {str(e)}")
+        st.stop()
+
 required_secrets = [
     "OPENAI_API_KEY",
     "SUPABASE_URL", 
@@ -18,25 +31,8 @@ required_secrets = [
     "STRIPE_SUCCESS_URL",
     "STRIPE_WEBHOOK_SECRET"
 ]
-secrets = {}
 
-# Try getting from st.secrets (Streamlit Cloud)
-try:
-    for secret in required_secrets:
-        # Use .get to avoid KeyError if secret is missing
-        secrets[secret] = st.secrets.get(secret)
-    # Check if any secret is None or empty string
-    missing_secrets = [s for s in required_secrets if not secrets.get(s)]
-    if missing_secrets:
-        raise ValueError(f"Missing secrets in st.secrets: {missing_secrets}")
-except Exception as e:
-    # Fall back to environment variables (local development)
-    import os
-    for secret in required_secrets:
-        secrets[secret] = os.environ.get(secret)
-        if not secrets[secret]:
-            st.error(f"Missing required secret: {secret}")
-            st.stop()
+secrets = load_secrets()
 
 # Initialize clients with error handling
 try:
