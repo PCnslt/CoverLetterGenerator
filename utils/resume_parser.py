@@ -2,7 +2,7 @@ import pdfplumber
 from docx import Document
 import streamlit as st
 from openai import OpenAI, APIError, AuthenticationError, RateLimitError
-from pdfplumber import PDFSyntaxError  # pylint: disable=no-name-in-module
+from pdfminer.pdfparser import PDFSyntaxError
 from typing import Union, Optional
 import io
 

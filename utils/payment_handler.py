@@ -10,14 +10,10 @@ import time
 class PaymentProcessor:
     """Handles payment processing with Stripe integration and Supabase logging"""
     
-    def __init__(self):
+    def __init__(self, stripe_secret_key: str, supabase_url: str, supabase_key: str, stripe_price_id: str, stripe_success_url: str = "http://localhost:8501", stripe_webhook_secret: str = None):
         # Validate secrets first
-        supabase_url = st.secrets['SUPABASE_URL']
-        supabase_key = st.secrets['SUPABASE_KEY'] 
-        stripe_key = st.secrets['STRIPE_SECRET_KEY']
-        
-        if not all([supabase_url, supabase_key, stripe_key]):
-            raise ValueError("Missing required environment variables")
+        if not all([supabase_url, supabase_key, stripe_secret_key, stripe_price_id]):
+            raise ValueError("Missing required configuration")
             
         if not supabase_url.startswith("https://"):
             raise ValueError("Invalid Supabase URL format")
@@ -25,8 +21,11 @@ class PaymentProcessor:
         if not supabase_key.startswith("eyJ"):
             raise ValueError("Invalid Supabase key format")
 
-        stripe.api_key = stripe_key
+        stripe.api_key = stripe_secret_key
         self.supabase = create_client(supabase_url, supabase_key)
+        self.stripe_price_id = stripe_price_id
+        self.stripe_success_url = stripe_success_url
+        self.stripe_webhook_secret = stripe_webhook_secret
         
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, max=10))
     def create_payment_session(self, user_id: str) -> Optional[str]:
@@ -35,11 +34,11 @@ class PaymentProcessor:
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
-                    'price': st.secrets['STRIPE_PRICE_ID'],
+                    'price': self.stripe_price_id,
                     'quantity': 1
                 }],
                 mode='payment',
-                success_url=f"{st.secrets.get('STRIPE_SUCCESS_URL', 'http://localhost:8501')}?payment_success=true&session_id={{CHECKOUT_SESSION_ID}}",
+                success_url=f"{self.stripe_success_url}?payment_success=true&session_id={{CHECKOUT_SESSION_ID}}",
                 metadata={'user_id': user_id}
             )
             self.log_transaction(user_id, session.id)
@@ -86,7 +85,7 @@ class PaymentProcessor:
             event = stripe.Webhook.construct_event(
                 payload,
                 sig_header,
-                st.secrets['STRIPE_WEBHOOK_SECRET']
+                self.stripe_webhook_secret
             )
             
             if event['type'] == 'checkout.session.completed':

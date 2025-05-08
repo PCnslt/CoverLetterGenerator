@@ -8,10 +8,40 @@ from typing import Optional, Iterator
 import os
 from openai import OpenAI, APIError, AuthenticationError, RateLimitError
 
+# Handle secrets for both local and cloud environments
+required_secrets = [
+    "OPENAI_API_KEY",
+    "SUPABASE_URL", 
+    "SUPABASE_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_PRICE_ID"
+]
+secrets = {}
+
+# Try getting from st.secrets (Streamlit Cloud)
+try:
+    for secret in required_secrets:
+        secrets[secret] = st.secrets[secret]
+except:
+    # Fall back to environment variables (local development)
+    import os
+    for secret in required_secrets:
+        secrets[secret] = os.environ.get(secret)
+        if not secrets[secret]:
+            st.error(f"Missing required secret: {secret}")
+            st.stop()
+
 # Initialize clients with error handling
 try:
-    payment_processor = PaymentProcessor()
-    openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+    payment_processor = PaymentProcessor(
+        stripe_secret_key=secrets["STRIPE_SECRET_KEY"],
+        supabase_url=secrets["SUPABASE_URL"],
+        supabase_key=secrets["SUPABASE_KEY"],
+        stripe_price_id=secrets.get("STRIPE_PRICE_ID", "your_default_price_id"),
+        stripe_success_url=secrets.get("STRIPE_SUCCESS_URL", "http://localhost:8501"),
+        stripe_webhook_secret=secrets.get("STRIPE_WEBHOOK_SECRET")
+    )
+    openai_client = OpenAI(api_key=secrets["OPENAI_API_KEY"])
 except Exception as e:
     st.error(f"Initialization failed: {str(e)}")
     st.stop()
@@ -75,11 +105,9 @@ def main():
     
     st.title("AI Cover Letter Generator")
     
-    # Check required secrets
-    required_secrets = ["OPENAI_API_KEY", "SUPABASE_URL", "SUPABASE_KEY", "STRIPE_SECRET_KEY"]
-    missing_secrets = [secret for secret in required_secrets if secret not in st.secrets]
-    if missing_secrets:
-        st.error(f"Missing required secrets: {', '.join(missing_secrets)}")
+    # Check required secrets (already handled at startup)
+    if not all(secrets.values()):
+        st.error("Missing required configuration - please check your secrets")
         st.stop()
     
     with st.form("inputs"):
