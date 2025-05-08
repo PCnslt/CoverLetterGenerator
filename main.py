@@ -7,15 +7,11 @@ from utils.payment_handler import PaymentProcessor
 from typing import Optional, Iterator
 import os
 from openai import OpenAI, APIError, AuthenticationError, RateLimitError
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Initialize clients with error handling
 try:
     payment_processor = PaymentProcessor()
-    openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 except Exception as e:
     st.error(f"Initialization failed: {str(e)}")
     st.stop()
@@ -79,11 +75,11 @@ def main():
     
     st.title("AI Cover Letter Generator")
     
-    # Check required environment variables
-    required_env_vars = ["OPENAI_API_KEY", "SUPABASE_URL", "SUPABASE_KEY", "STRIPE_SECRET_KEY"]
-    missing_vars = [var for var in required_env_vars if not os.getenv(var)]
-    if missing_vars:
-        st.error(f"Missing required environment variables: {', '.join(missing_vars)}")
+    # Check required secrets
+    required_secrets = ["OPENAI_API_KEY", "SUPABASE_URL", "SUPABASE_KEY", "STRIPE_SECRET_KEY"]
+    missing_secrets = [secret for secret in required_secrets if secret not in st.secrets]
+    if missing_secrets:
+        st.error(f"Missing required secrets: {', '.join(missing_secrets)}")
         st.stop()
     
     with st.form("inputs"):

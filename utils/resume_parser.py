@@ -1,6 +1,8 @@
 import pdfplumber
 from docx import Document
 import streamlit as st
+from openai import OpenAI, APIError, AuthenticationError, RateLimitError
+from pdfplumber import PDFSyntaxError  # pylint: disable=no-name-in-module
 from typing import Union, Optional
 import io
 
@@ -26,7 +28,7 @@ def extract_resume_text(uploaded_file: io.BytesIO) -> Optional[str]:
                         full_text.append(page_text)
                     return "\n".join(full_text).replace("\n\n", "\n").strip()
             
-            except pdfplumber.pdfs.PDFSyntaxError:
+            except PDFSyntaxError:
                 st.error("Invalid or corrupted PDF file")
                 return None
                 

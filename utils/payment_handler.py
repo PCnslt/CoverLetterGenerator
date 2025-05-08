@@ -4,20 +4,17 @@ import stripe
 from typing import Optional, Dict
 from supabase import create_client
 from tenacity import retry, stop_after_attempt, wait_exponential
-from dotenv import load_dotenv
+import streamlit as st
 import time
-
-# Load environment variables first
-load_dotenv()
 
 class PaymentProcessor:
     """Handles payment processing with Stripe integration and Supabase logging"""
     
     def __init__(self):
-        # Validate environment variables first
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_KEY')
-        stripe_key = os.getenv('STRIPE_SECRET_KEY')
+        # Validate secrets first
+        supabase_url = st.secrets['SUPABASE_URL']
+        supabase_key = st.secrets['SUPABASE_KEY'] 
+        stripe_key = st.secrets['STRIPE_SECRET_KEY']
         
         if not all([supabase_url, supabase_key, stripe_key]):
             raise ValueError("Missing required environment variables")
@@ -38,11 +35,11 @@ class PaymentProcessor:
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
-                    'price': os.getenv('STRIPE_PRICE_ID'),
+                    'price': st.secrets['STRIPE_PRICE_ID'],
                     'quantity': 1
                 }],
                 mode='payment',
-                success_url=f"{os.getenv('STRIPE_SUCCESS_URL', 'http://localhost:8501')}?payment_success=true&session_id={{CHECKOUT_SESSION_ID}}",
+                success_url=f"{st.secrets.get('STRIPE_SUCCESS_URL', 'http://localhost:8501')}?payment_success=true&session_id={{CHECKOUT_SESSION_ID}}",
                 metadata={'user_id': user_id}
             )
             self.log_transaction(user_id, session.id)
@@ -89,7 +86,7 @@ class PaymentProcessor:
             event = stripe.Webhook.construct_event(
                 payload,
                 sig_header,
-                os.getenv('STRIPE_WEBHOOK_SECRET')
+                st.secrets['STRIPE_WEBHOOK_SECRET']
             )
             
             if event['type'] == 'checkout.session.completed':
