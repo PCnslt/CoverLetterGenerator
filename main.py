@@ -14,15 +14,22 @@ required_secrets = [
     "SUPABASE_URL", 
     "SUPABASE_KEY",
     "STRIPE_SECRET_KEY",
-    "STRIPE_PRICE_ID"
+    "STRIPE_PRICE_ID",
+    "STRIPE_SUCCESS_URL",
+    "STRIPE_WEBHOOK_SECRET"
 ]
 secrets = {}
 
 # Try getting from st.secrets (Streamlit Cloud)
 try:
     for secret in required_secrets:
-        secrets[secret] = st.secrets[secret]
-except:
+        # Use .get to avoid KeyError if secret is missing
+        secrets[secret] = st.secrets.get(secret)
+    # Check if any secret is None or empty string
+    missing_secrets = [s for s in required_secrets if not secrets.get(s)]
+    if missing_secrets:
+        raise ValueError(f"Missing secrets in st.secrets: {missing_secrets}")
+except Exception as e:
     # Fall back to environment variables (local development)
     import os
     for secret in required_secrets:
