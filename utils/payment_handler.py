@@ -10,9 +10,9 @@ import time
 class PaymentProcessor:
     """Handles payment processing with Stripe integration and Supabase logging"""
     
-    def __init__(self, stripe_secret_key: str, supabase_url: str, supabase_key: str, stripe_price_id: str, stripe_success_url: str = "http://localhost:8501", stripe_webhook_secret: str = None):
+    def __init__(self, stripe_secret_key: str, supabase_url: str, supabase_key: str, stripe_success_url: str = "http://localhost:8501", stripe_webhook_secret: str = None):
         # Validate secrets first
-        if not all([supabase_url, supabase_key, stripe_secret_key, stripe_price_id]):
+        if not all([supabase_url, supabase_key, stripe_secret_key]):
             raise ValueError("Missing required configuration")
             
         if not supabase_url.startswith("https://"):
@@ -34,7 +34,11 @@ class PaymentProcessor:
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
-                    'price': self.stripe_price_id,
+                    'price_data': {
+                        'currency': 'usd',
+                        'unit_amount': 100,  # $1.00
+                        'product_data': {'name': 'AI Cover Letter Generation'}
+                    },
                     'quantity': 1
                 }],
                 mode='payment',
@@ -46,6 +50,7 @@ class PaymentProcessor:
         except stripe.error.StripeError as e:
             print(f"Payment failed: {str(e)}")
             return None
+
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, max=5))
     def log_transaction(self, user_id: str, session_id: str):

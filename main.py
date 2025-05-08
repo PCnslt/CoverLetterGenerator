@@ -27,7 +27,6 @@ required_secrets = [
     "SUPABASE_URL", 
     "SUPABASE_KEY",
     "STRIPE_SECRET_KEY",
-    "STRIPE_PRICE_ID",
     "STRIPE_SUCCESS_URL",
     "STRIPE_WEBHOOK_SECRET"
 ]
@@ -40,7 +39,6 @@ try:
         stripe_secret_key=secrets["STRIPE_SECRET_KEY"],
         supabase_url=secrets["SUPABASE_URL"],
         supabase_key=secrets["SUPABASE_KEY"],
-        stripe_price_id=secrets.get("STRIPE_PRICE_ID", "your_default_price_id"),
         stripe_success_url=secrets.get("STRIPE_SUCCESS_URL", "http://localhost:8501"),
         stripe_webhook_secret=secrets.get("STRIPE_WEBHOOK_SECRET")
     )
@@ -161,6 +159,10 @@ def main():
             else:
                 try:
                     payment_url = payment_processor.create_payment_session("user123")
+                    if not payment_url:
+                        st.error("Payment initialization failed. Please try again.")
+                        st.session_state.payment_state = {'status': 'unpaid'}
+                        return
                     st.session_state.payment_state.update({
                         'status': 'pending',
                         'session_id': payment_url.split("/pay/")[-1].split("#")[0],
@@ -210,6 +212,9 @@ def main():
                 st.write(":lock: Initializing secure payment session...")
                 try:
                     payment_url = payment_processor.create_payment_session("user123")
+                    if not payment_url:
+                        st.error("Payment initialization failed. Please try again.")
+                        return
                     st.session_state.payment_url = payment_url
                     # Extract session ID from Stripe URL format: https://checkout.stripe.com/pay/cs_test_abc123...
                     st.session_state.payment_session_id = payment_url.split("/pay/")[-1].split("#")[0]
